@@ -1,6 +1,6 @@
-# medSynthesis with Tensorflow
+# medSynthesis
 
-This project is for medical image synthesis with generative adversarial networks (GAN).
+This project is for medical image synthesis with generative adversarial networks (GAN), such as, synthesize CT from MRI, 7T from 3T, high does PET from low dose PET.
 
 Currently, we have uploaded a 2D GAN in this repository (3D version will also be shared soon). Detailed information can be found in our paper: 
 
@@ -17,6 +17,7 @@ If it is helpful for you, please cite our paper:
   organization={Springer}
 }
 
+# How to run the tensorflow code
 The main entrance for the code is main.py
 
 I suppose you have installed:    <br>
