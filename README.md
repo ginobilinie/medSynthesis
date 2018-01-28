@@ -1,4 +1,4 @@
-# medSynthesis
+# medSynthesis with Tensorflow
 
 This project is for medical image synthesis with generative adversarial networks (GAN).
 
@@ -16,3 +16,19 @@ If it is helpful for you, please cite our paper:
   year={2017},
   organization={Springer}
 }
+
+The main entrance for the code is main.py
+
+I suppose you have installed:  
+     <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tensorflow
+     <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;simpleITK 
+     <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;numpy
+
+Steps to run the code:
+1. use readMedImg4CaffeCropNie4SingleS.py to extract patches (as limited annotated data can be acquired in medical image fields, we usually use patch as the training unit), and save as hdf5 format.
+2. modify the g_model.py if you want to do some changes to the architecture of the generator
+3. modify the d_model.py if you want to do some changes to the architecture of the discriminator
+4. check the loss function in the loss_functions.py.
+5. set up the hyper-parameters in the main.py
+6. run the code: python main.py
+
