@@ -19,8 +19,8 @@ If it is helpful for you, please cite our paper:
 
 The main entrance for the code is main.py
 
-I suppose you have installed:  
-     <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tensorflow
+I suppose you have installed:    <br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tensorflow
      <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;simpleITK 
      <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;numpy
 
