@@ -40,8 +40,8 @@ def gdl_loss(gen_CT, gt_CT, alpha, batch_size_tf):
     # create filters [-1, 1] and [[1],[-1]] for diffing to the left and down respectively.
     pos = tf.constant(np.identity(1), dtype=tf.float32)
     neg = -1 * pos
-    filter_x = tf.expand_dims(tf.pack([neg, pos]), 0)  # [-1, 1]
-    filter_y = tf.pack([tf.expand_dims(pos, 0), tf.expand_dims(neg, 0)])  # [[1],[-1]]
+    filter_x = tf.expand_dims(tf.stack([neg, pos]), 0)  # [-1, 1]
+    filter_y = tf.stack([tf.expand_dims(pos, 0), tf.expand_dims(neg, 0)])  # [[1],[-1]]
     strides = [1, 1, 1, 1]  # stride of (1, 1)
     padding = 'SAME'
 
@@ -131,4 +131,4 @@ def adv_loss(preds, labels):
         scale_losses.append(loss)
 
     # condense into one tensor and avg
-    return tf.reduce_mean(tf.pack(scale_losses))
+    return tf.reduce_mean(tf.stack(scale_losses))

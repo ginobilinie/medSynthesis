@@ -386,7 +386,7 @@ def _variable_with_weight_decay(name, shape, wd):
   initializer=xavier_init(fan_in, fan_out)
   
   var=tf.get_variable(name, shape=shape,dtype=tf.float32, initializer=initializer)
-  weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
+  weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
   tf.add_to_collection('losses', weight_decay)
 
   return var
