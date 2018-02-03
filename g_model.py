@@ -87,7 +87,9 @@ class MR2CT(object):
 			self.writer = tf.train.SummaryWriter("./summaries", self.sess.graph)
 			self.saver = tf.train.Saver()
 
-
+     '''
+     a generator without dilation, actually, we use dilation (2) in the final version.
+     '''
     def generator(self,inputMR,batch_size_tf):
                
         ######## FCN for the 32x32x32 to 24x24x24 ###################################
