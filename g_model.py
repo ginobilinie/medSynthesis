@@ -58,76 +58,81 @@ class MR2CT(object):
         self.build_model()
 
     def build_model(self):
-	    with tf.device('/gpu:0'):
-			self.inputMR=tf.placeholder(tf.float32, shape=[None, self.height_MR, self.width_MR, 5])#5 chans input
-			self.CT_GT=tf.placeholder(tf.float32, shape=[None, self.height_CT, self.width_CT, 1])
-			batch_size_tf = tf.shape(self.inputMR)[0]  #variable batchsize so we can test here
-			self.train_phase = tf.placeholder(tf.bool, name='phase_train')
-			self.G, self.layer = self.generator(self.inputMR,batch_size_tf)
-			print 'G shape ',self.G.get_shape
-			self.D, self.D_logits = self.discriminator(self.CT_GT)#real CT data
-			self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)#fake generated CT data
-			self.d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits, labels=tf.ones_like(self.D)))
-			self.d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_, labels=tf.zeros_like(self.D_)))
-			self.d_loss=self.d_loss_real+self.d_loss_fake
-			self.global_step = tf.Variable(0, name='global_step', trainable=False)
-			self.g_loss, self.lpterm, self.gdlterm, self.bceterm=self.combined_loss_G(batch_size_tf)
-			t_vars = tf.trainable_variables()
-			self.d_vars = [var for var in t_vars if 'd_' in var.name]
-			self.g_vars = [var for var in t_vars if 'g_' in var.name]
-			self.d_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
-			                  .minimize(self.d_loss, var_list=self.d_vars)
-			self.g_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
-			                  .minimize(self.g_loss, var_list=self.g_vars, global_step=self.global_step)
-			print 'shape output G ',self.G.get_shape()
-			#print 'shape output D ',self.D.get_shape()
-			print 'learning rate ',self.learning_rate
-			#self.learning_rate_tensor = tf.train.exponential_decay(self.learning_rate, self.global_step,                                     #self.lr_step, 0.1, staircase=True)
-			#self.g_optim = tf.train.GradientDescentOptimizer(self.learning_rate_tensor).minimize(self.g_loss, global_step=self.global_step)
-			#self.g_optim = tf.train.MomentumOptimizer(self.learning_rate_tensor, 0.9).minimize(self.g_loss, global_step=self.global_step)
-			self.merged = tf.merge_all_summaries()
-			self.writer = tf.train.SummaryWriter("./summaries", self.sess.graph)
-			self.saver = tf.train.Saver()
+	   with tf.device('/gpu:0'):
+            self.inputMR=tf.placeholder(tf.float32, shape=[None, self.height_MR, self.width_MR, 5])#5 chans input
+            self.CT_GT=tf.placeholder(tf.float32, shape=[None, self.height_CT, self.width_CT, 1])
+            batch_size_tf = tf.shape(self.inputMR)[0]  #variable batchsize so we can test here
+            self.train_phase = tf.placeholder(tf.bool, name='phase_train')
+            self.G, self.layer = self.generator(self.inputMR,batch_size_tf)
+            print 'G shape ',self.G.get_shape
+            self.D, self.D_logits = self.discriminator(self.CT_GT)#real CT data
+            self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)#fake generated CT data
+            self.d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits, labels=tf.ones_like(self.D)))
+            self.d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_, labels=tf.zeros_like(self.D_)))
+            self.d_loss=self.d_loss_real+self.d_loss_fake
+            self.global_step = tf.Variable(0, name='global_step', trainable=False)
+            self.g_loss, self.lpterm, self.gdlterm, self.bceterm=self.combined_loss_G(batch_size_tf)
+            t_vars = tf.trainable_variables()
+            self.d_vars = [var for var in t_vars if 'd_' in var.name]
+            self.g_vars = [var for var in t_vars if 'g_' in var.name]
+            with tf.variable_scope(tf.get_variable_scope(),reuse=False):
+                self.d_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+                                  .minimize(self.d_loss, var_list=self.d_vars)
+                self.g_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+                                  .minimize(self.g_loss, var_list=self.g_vars, global_step=self.global_step)
+            print 'shape output G ',self.G.get_shape()
+            #print 'shape output D ',self.D.get_shape()
+            print 'learning rate ',self.learning_rate
+            #self.learning_rate_tensor = tf.train.exponential_decay(self.learning_rate, self.global_step,                                     #self.lr_step, 0.1, staircase=True)
+            #self.g_optim = tf.train.GradientDescentOptimizer(self.learning_rate_tensor).minimize(self.g_loss, global_step=self.global_step)
+            #self.g_optim = tf.train.MomentumOptimizer(self.learning_rate_tensor, 0.9).minimize(self.g_loss, global_step=self.global_step)
+            self.merged = tf.summary.merge_all()
+            self.writer = tf.summary.FileWriter("./summaries", self.sess.graph)
+            self.saver = tf.train.Saver()
 
 
-    def generator(self,inputMR,batch_size_tf):
-               
-        ######## FCN for the 32x32x32 to 24x24x24 ###################################
-        print 'input shape, ',inputMR.get_shape() 
-        conv1_a = conv_op_bn(inputMR, name="g_conv1_a", kh=7, kw=7, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#30
-        conv2_a = conv_op_bn(conv1_a, name="g_conv2_a", kh=5, kw=5, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
-        conv3_a = conv_op_bn(conv2_a, name="g_conv3_a", kh=3, kw=3, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
-        conv4_a = conv_op_bn(conv3_a, name="g_conv4_a", kh=3, kw=3, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
-        conv5_a = conv_op_bn(conv4_a, name="g_conv5_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
-        
-        conv6_a = conv_op_bn(conv5_a, name="g_conv6_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)#26
-        conv7_a = conv_op_bn(conv6_a, name="g_conv7_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)
-        conv8_a = conv_op_bn(conv7_a, name="g_conv8_a", kh=3, kw=3, n_out=64, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)
-                #conv7_a = conv_op_3d_bn(conv6_a, name="conv7_a", kh=3, kw=3, n_out=1, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)#24
-        conv9_a = conv_op(conv8_a, name="g_conv9_a", kh=3, kw=3, n_out=1, dh=1, dw=1, wd=self.wd, padding='SAME',activation=False)#24 I modified it here,dong
-        print 'conv9a shape, ',conv9_a.get_shape()
-        #self.MR_16_downsampled=conv7_a#JUST FOR TEST
-        return conv9_a,conv9_a
+    def generator(self,inputMR,batch_size_tf, reuse = False):
+        with tf.variable_scope('generator') as scope:
+            if (reuse):
+                tf.get_variable_scope().reuse_variables()
+                   
+            ######## FCN for the 32x32x32 to 24x24x24 ###################################
+            print 'input shape, ',inputMR.get_shape() 
+            conv1_a = conv_op_bn(inputMR, name="g_conv1_a", kh=7, kw=7, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#30
+            conv2_a = conv_op_bn(conv1_a, name="g_conv2_a", kh=5, kw=5, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
+            conv3_a = conv_op_bn(conv2_a, name="g_conv3_a", kh=3, kw=3, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
+            conv4_a = conv_op_bn(conv3_a, name="g_conv4_a", kh=3, kw=3, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
+            conv5_a = conv_op_bn(conv4_a, name="g_conv5_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
+            
+            conv6_a = conv_op_bn(conv5_a, name="g_conv6_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)#26
+            conv7_a = conv_op_bn(conv6_a, name="g_conv7_a", kh=3, kw=3, n_out=128, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)
+            conv8_a = conv_op_bn(conv7_a, name="g_conv8_a", kh=3, kw=3, n_out=64, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)
+                    #conv7_a = conv_op_3d_bn(conv6_a, name="conv7_a", kh=3, kw=3, n_out=1, dh=1, dw=1, wd=self.wd, padding='SAME',train_phase=self.train_phase)#24
+            conv9_a = conv_op(conv8_a, name="g_conv9_a", kh=3, kw=3, n_out=1, dh=1, dw=1, wd=self.wd, padding='SAME',activation=False)#24 I modified it here,dong
+            print 'conv9a shape, ',conv9_a.get_shape()
+            #self.MR_16_downsampled=conv7_a#JUST FOR TEST
+            return conv9_a,conv9_a
 
 
     def discriminator(self, inputCT, reuse=False):
-    	if reuse:
-	        tf.get_variable_scope().reuse_variables()
-        print 'ct shape ',inputCT.get_shape()
-        h0=conv_op_bn(inputCT, name="d_conv_dis_1_a", kh=5, kw=5, n_out=32, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
-        print 'h0 shape ',h0.get_shape()
-        m0=mpool_op(h0, 'pool0', kh=2, kw=2, dh=2, dw=2)
-        print 'm0 shape ',m0.get_shape()
-        h1 = conv_op_bn(m0, name="d_conv2_dis_a", kh=5, kw=5, n_out=64, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
-        print 'h1 shape ',h1.get_shape()
-        m1=mpool_op(h1, 'pool1', kh=2, kw=2, dh=2, dw=2)
-        print 'mi shape ',m1.get_shape()
-        h2 = conv_op_bn(m1, name="d_conv3_dis_a", kh=5, kw=5, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
-        h3 = conv_op_bn(h2, name="d_conv4_dis_a", kh=5, kw=5, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
-        fc1=fullyconnected_op(h3, name="d_fc1", n_out=512, wd=self.wd, activation=True)
-        fc2=fullyconnected_op(fc1, name="d_fc2", n_out=128, wd=self.wd, activation=True)
-        fc3=fullyconnected_op(fc2, name="d_fc3", n_out=1, wd=self.wd, activation=False)
-        return tf.nn.sigmoid(fc3), fc3
+        with tf.variable_scope('discriminator') as scope:
+            if reuse:
+                tf.get_variable_scope().reuse_variables()
+            print 'ct shape ',inputCT.get_shape()
+            h0=conv_op_bn(inputCT, name="d_conv_dis_1_a", kh=5, kw=5, n_out=32, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
+            print 'h0 shape ',h0.get_shape()
+            m0=mpool_op(h0, 'pool0', kh=2, kw=2, dh=2, dw=2)
+            print 'm0 shape ',m0.get_shape()
+            h1 = conv_op_bn(m0, name="d_conv2_dis_a", kh=5, kw=5, n_out=64, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
+            print 'h1 shape ',h1.get_shape()
+            m1=mpool_op(h1, 'pool1', kh=2, kw=2, dh=2, dw=2)
+            print 'mi shape ',m1.get_shape()
+            h2 = conv_op_bn(m1, name="d_conv3_dis_a", kh=5, kw=5, n_out=128, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)#28
+            h3 = conv_op_bn(h2, name="d_conv4_dis_a", kh=5, kw=5, n_out=256, dh=1, dw=1, wd=self.wd, padding='VALID',train_phase=self.train_phase)
+            fc1=fullyconnected_op(h3, name="d_fc1", n_out=512, wd=self.wd, activation=True)
+            fc2=fullyconnected_op(fc1, name="d_fc2", n_out=128, wd=self.wd, activation=True)
+            fc3=fullyconnected_op(fc2, name="d_fc3", n_out=1, wd=self.wd, activation=False)
+            return tf.nn.sigmoid(fc3), fc3
 
 
 
@@ -145,7 +150,7 @@ class MR2CT(object):
             print(" [*] Load SUCCESS")
         else:
             print(" [!] Load failed...")
-            self.sess.run(tf.initialize_all_variables())
+            self.sess.run(tf.global_variables_initializer())
 
         self.sess.graph.finalize()
         
