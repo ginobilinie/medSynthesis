@@ -4,6 +4,8 @@ By Roger Trullo and Dong Nie
 Oct., 2016
 '''
 
+
+
 from __future__ import division
 import os
 import time
@@ -52,10 +54,10 @@ class MR2CT(object):
         self.height_CT=height_CT
         self.width_CT=width_CT
         self.checkpoint_dir = checkpoint_dir
-        self.data_generator = Generator_2D_slices(path_patients_h5,self.batch_size)
+        self.data_generator = Generator_2D_slices(path_patients_h5, self.batch_size)
         self.build_model()
 
-    def build_model(self)：
+    def build_model(self):
 	    with tf.device('/gpu:0'):
 			self.inputMR=tf.placeholder(tf.float32, shape=[None, self.height_MR, self.width_MR, 5])#5 chans input
 			self.CT_GT=tf.placeholder(tf.float32, shape=[None, self.height_CT, self.width_CT, 1])
@@ -65,8 +67,8 @@ class MR2CT(object):
 			print 'G shape ',self.G.get_shape
 			self.D, self.D_logits = self.discriminator(self.CT_GT)#real CT data
 			self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)#fake generated CT data
-			self.d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.D_logits, tf.ones_like(self.D)))
-			self.d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.D_logits_, tf.zeros_like(self.D_)))
+			self.d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits, labels=tf.ones_like(self.D)))
+			self.d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_, labels=tf.zeros_like(self.D_)))
 			self.d_loss=self.d_loss_real+self.d_loss_fake
 			self.global_step = tf.Variable(0, name='global_step', trainable=False)
 			self.g_loss, self.lpterm, self.gdlterm, self.bceterm=self.combined_loss_G(batch_size_tf)
@@ -87,9 +89,7 @@ class MR2CT(object):
 			self.writer = tf.train.SummaryWriter("./summaries", self.sess.graph)
 			self.saver = tf.train.Saver()
 
-     '''
-     a generator without dilation, actually, we use dilation (2) in the final version.
-     '''
+
     def generator(self,inputMR,batch_size_tf):
                
         ######## FCN for the 32x32x32 to 24x24x24 ###################################
@@ -344,7 +344,7 @@ class MR2CT(object):
 
         lpterm=lp_loss(self.G, self.CT_GT, self.l_num, batch_size_tf)
         gdlterm=gdl_loss(self.G, self.CT_GT, self.alpha,batch_size_tf)
-        bceterm=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.D_logits_, tf.ones_like(self.D_)))
+        bceterm=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_,labels=tf.ones_like(self.D_)))
         loss_=self.lam_lp*lpterm + self.lam_gdl*gdlterm + self.lam_adv*bceterm
         tf.add_to_collection('losses', loss_)
         loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
