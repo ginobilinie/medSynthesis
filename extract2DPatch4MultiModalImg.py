@@ -2,7 +2,7 @@
 '''
 Target: Crop patches for kinds of medical images, such as hdr, nii, mha, mhd, raw and so on, and store them as hdf5 files
 for single-scale patches
-Created on Oct. 20, 2016
+Created in June, 2016
 Author: Dong Nie 
 '''
 
