@@ -182,21 +182,21 @@ def main():
     filenames = scan.scan_files()  
    
     maxLPET = 149.366742
-    maxPercentLPET =
+    maxPercentLPET = 7.76
     minLPET = 0.00055037
     meanLPET = 0.27593288
     stdLPET = 0.75747500
     
     # for s-pet
     maxSPET = 156.675962
-    maxPercentSPET =
+    maxPercentSPET = 7.79
     minSPET = 0.00055037
     meanSPET = 0.284224789
     stdSPET = 0.7642257
     
     # for rsCT
     maxCT = 27279
-    maxPercentCT = 
+    maxPercentCT = 1320
     minCT = -1023
     meanCT = -601.1929
     stdCT = 475.034
