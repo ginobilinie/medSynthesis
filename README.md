@@ -1,4 +1,4 @@
-# medSynthesis with TensorFlow
+# medSynthesis with TensorFlow (we also provide a improved version in pytorch, you can access it at https://github.com/ginobilinie/medSynthesisV1)
 
 This project is for medical image synthesis with generative adversarial networks (GAN), such as, synthesize CT from MRI, 7T from 3T, high does PET from low dose PET.
 
