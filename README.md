@@ -2,7 +2,7 @@
 
 This project is for medical image synthesis with generative adversarial networks (GAN), such as, synthesize CT from MRI, 7T from 3T, high does PET from low dose PET.
 
-Currently, we have uploaded a 2D GAN in this repository (3D version will also be shared soon). Detailed information can be found in our paper: 
+Currently, we have uploaded a 2D/3D GAN in this repository (2D is in the root folder, and 3D version is in the folder of '3dversion'). Detailed information can be found in our paper: 
 
 <a  href="https://link.springer.com/chapter/10.1007/978-3-319-66179-7_48">Medical Image Synthesis with Context-Aware Generative Adversarial Networks</a>
 
@@ -25,7 +25,7 @@ I suppose you have installed:    <br>
      <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;simpleITK 
      <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;numpy
 
-Steps to run the code:
+Steps to run the code (since the code is implemented as early as 2016, part of the codes are deprecated, you can refer to <a href='https://github.com/ginobilinie/medSynthesisV1'>our pytorch version</a> for new implementations):
 1. use readMedImg4CaffeCropNie4SingleS.py to extract patches (as limited annotated data can be acquired in medical image fields, we usually use patch as the training unit), and save as hdf5 format.
 2. modify the g_model.py if you want to do some changes to the architecture of the generator
 3. modify the d_model.py if you want to do some changes to the architecture of the discriminator
