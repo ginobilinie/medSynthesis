@@ -33,3 +33,6 @@ Steps to run the code (since the code is implemented as early as 2016, part of t
 5. set up the hyper-parameters in the main.py
 6. run the code: python main.py
 
+# License
+medSynthesis is released under the MIT License (refer to the LICENSE file for details).
+
