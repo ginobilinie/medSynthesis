@@ -33,6 +33,12 @@ Steps to run the code (since the code is implemented as early as 2016, part of t
 5. set up the hyper-parameters in the main.py
 6. run the code: python main.py
 
+# Dataset
+BTW, you can download a real medical image synthesis dataset for reconstructing standard-dose PET from low-dose PET via this link:  https://www.aapm.org/GrandChallenge/LowDoseCT/
+
+Also, there are some MRI synthesis datasets available:
+http://brain-development.org/ixi-dataset/
+
 # License
 medSynthesis is released under the MIT License (refer to the LICENSE file for details).
 
