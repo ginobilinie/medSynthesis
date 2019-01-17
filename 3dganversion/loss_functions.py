@@ -35,21 +35,6 @@ def cross_entropy_Discriminator(logits_D,gt_D):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def combined_loss(gen_frames, gt_frames, d_preds, lam_adv=1, lam_lp=1, lam_gdl=1, l_num=2, alpha=2):
     """
     Calculates the sum of the combined adversarial, lp and GDL losses in the given proportion. Used
@@ -91,9 +76,47 @@ def bce_loss(preds, targets):
                             tf.matmul(1 - targets, log10(1 - preds), transpose_a=True)))
 
 
+def gdl3d_loss(gen_frames, gt_frames, alpha):
+    """
+    Calculates the sum of GDL losses between the predicted and ground truth frames.
+    This is the 3d version.
 
+    @param gen_frames: The predicted frames at each scale.
+    @param gt_frames: The ground truth frames at each scale
+    @param alpha: The power to which each gradient term is raised.
 
+    @return: The GDL loss for 3d. Dong
+    """
+    # calculate the loss for each scale
+    scale_losses = []
+    for i in xrange(len(gen_frames)):
+        # create filters [-1, 1] and [[1],[-1]] for diffing to the left and down respectively.
+        pos = tf.constant(np.identity(1), dtype=tf.float32)
+        neg = -1 * pos
 
+        baseFilter = tf.pack([tf.expand_dims(pos, 0), tf.expand_dims(neg, 0)])  # [[1],[-1]]# 2x1x1x1
+        filter_x = tf.expand_dims(baseFilter, 1)  # [-1, 1] # 2x1x1x1x1
+        filter_y = tf.expand_dims(baseFilter, 0)  # [-1, 1] # 1x2x1x1x1
+        filter_z = tf.expand_dims(tf.pack([neg, pos]), 0)  # [-1, 1] # 1x2x1x1
+        filter_z = tf.expand_dims(filter_z, 0) # [-1, 1] #1x1x2x1x1
+        strides = [1, 1, 1, 1, 1]  # stride of (1, 1)
+        padding = 'SAME'
+
+        gen_dx = tf.abs(tf.nn.conv3d(gen_frames[i], filter_x, strides, padding=padding))
+        gen_dy = tf.abs(tf.nn.conv3d(gen_frames[i], filter_y, strides, padding=padding))
+        gen_dz = tf.abs(tf.nn.conv3d(gen_frames[i], filter_z, strides, padding=padding))
+        gt_dx = tf.abs(tf.nn.conv3d(gt_frames[i], filter_x, strides, padding=padding))
+        gt_dy = tf.abs(tf.nn.conv3d(gt_frames[i], filter_y, strides, padding=padding))
+        gt_dz = tf.abs(tf.nn.conv3d(gt_frames[i], filter_z, strides, padding=padding))
+
+        grad_diff_x = tf.abs(gt_dx - gen_dx)
+        grad_diff_y = tf.abs(gt_dy - gen_dy)
+        grad_diff_z = tf.abs(gt_dz - gen_dz)
+
+        scale_losses.append(tf.reduce_sum((grad_diff_x ** alpha + grad_diff_y ** alpha + grad_diff_z ** alpha)))
+
+    # condense into one tensor and avg
+    return tf.reduce_mean(tf.pack(scale_losses))
 
 
 
@@ -106,7 +129,7 @@ def gdl_loss(gen_frames, gt_frames, alpha):
     @param gt_frames: The ground truth frames at each scale
     @param alpha: The power to which each gradient term is raised.
 
-    @return: The GDL loss.
+    @return: The GDL loss for 2d.
     """
     # calculate the loss for each scale
     scale_losses = []

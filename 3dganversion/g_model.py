@@ -53,24 +53,35 @@ class MR2CT(object):
         self.build_model()
 
     def build_model(self):
-        self.inputMR=tf.placeholder(tf.float32, shape=[None, self.depth_MR, self.height_MR, self.width_MR, 1])
-        self.CT_GT=tf.placeholder(tf.float32, shape=[None, self.depth_CT, self.height_CT, self.width_CT, 1])
-        batch_size_tf = tf.shape(self.inputMR)[0]  #variable batchsize so we can test here
+        self.inputMR = tf.placeholder(tf.float32, shape=[None, self.depth_MR, self.height_MR, self.width_MR, 1])
+        self.CT_GT = tf.placeholder(tf.float32, shape=[None, self.depth_CT, self.height_CT, self.width_CT, 1])
+
+        batch_size_tf = tf.shape(self.inputMR)[0]  # variable batchsize so we can test here
         self.train_phase = tf.placeholder(tf.bool, name='phase_train')
-        self.G, self.layer = self.generator(self.inputMR,batch_size_tf)
-        #self.D = self.discriminator(self.inputMR)
-        print 'shape output G ',self.G.get_shape()
-        #print 'shape output D ',self.D.get_shape()
+        self.G, self.layer = self.generator(self.inputMR, batch_size_tf)
+        print 'G shape ', self.G.get_shape
+        self.D, self.D_logits = self.discriminator(self.CT_GT)  # real CT data
+        self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)  # fake generated CT data
+        self.d_loss_real = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits, labels=tf.ones_like(self.D)))
+        self.d_loss_fake = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_, labels=tf.zeros_like(self.D_)))
+        self.d_loss = self.d_loss_real + self.d_loss_fake
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.g_loss=lp_loss(self.G, self.CT_GT, self.l_num, batch_size_tf)
-        print 'learning rate ',self.learning_rate
-        self.learning_rate_tensor = tf.train.exponential_decay(self.learning_rate, self.global_step,
-                                             self.lr_step, 0.1, staircase=True)
-        #self.g_optim = tf.train.GradientDescentOptimizer(self.learning_rate_tensor).minimize(self.g_loss, global_step=self.global_step)
-        self.g_optim = tf.train.MomentumOptimizer(self.learning_rate_tensor, 0.9).minimize(self.g_loss, global_step=self.global_step)
-        
-        self.merged = tf.merge_all_summaries()
-        self.writer = tf.train.SummaryWriter("./summaries", self.sess.graph)
+        self.g_loss, self.lpterm, self.gdlterm, self.bceterm = self.combined_loss_G(batch_size_tf)
+        t_vars = tf.trainable_variables()
+        self.d_vars = [var for var in t_vars if 'd_' in var.name]
+        self.g_vars = [var for var in t_vars if 'g_' in var.name]
+        with tf.variable_scope(tf.get_variable_scope(), reuse=False):
+            self.d_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+                .minimize(self.d_loss, var_list=self.d_vars)
+            self.g_optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+                .minimize(self.g_loss, var_list=self.g_vars, global_step=self.global_step)
+        print 'shape output G ', self.G.get_shape()
+        # print 'shape output D ',self.D.get_shape()
+        print 'learning rate ', self.learning_rate
+        self.merged = tf.summary.merge_all()
+        self.writer = tf.summary.FileWriter("./summaries", self.sess.graph)
         self.saver = tf.train.Saver()
 
 
@@ -102,7 +113,7 @@ class MR2CT(object):
         #fc1=fullyconnected_op(h3, name="fc1", n_out=512, wd=self.wd, activation=True)
         fc2=fullyconnected_op(h3, name="fc2", n_out=128, wd=self.wd, activation=True)
         fc3=fullyconnected_op(fc2, name="fc3", n_out=1, wd=self.wd, activation=True)
-        return fc3#logits
+        return tf.nn.sigmoid(fc3), fc3#logits
 
 
 
@@ -133,7 +144,10 @@ class MR2CT(object):
         for it in range(start,config.iterations):
 
             X,y=self.data_generator.next()
-            
+
+            # Update D network
+            _, loss_eval_D, = self.sess.run([self.d_optim, self.d_loss],
+                        feed_dict={ self.inputMR: X, self.CT_GT:y, self.train_phase: True })
 
             # Update G network
             _, loss_eval, layer_out_eval = self.sess.run([self.g_optim, self.g_loss, self.layer],
@@ -148,21 +162,7 @@ class MR2CT(object):
                 print 'layer min ', np.min(layer_out_eval)
                 print 'layer max ', np.max(layer_out_eval)
                 print 'layer mean ', np.mean(layer_out_eval)
-             #    print 'trainable vars ' 
-            	# for v in tf.trainable_variables(): 
-	            #     print v.name 
-	            #     data_var=self.sess.run(v) 
-	            #     grads = tf.gradients(self.g_loss, v) 
-	            #     var_grad_val = self.sess.run(grads, feed_dict={self.inputMR: X, self.CT_GT:y }) 
-	            #     print 'grad min ', np.min(var_grad_val) 
-	            #     print 'grad max ', np.max(var_grad_val) 
-	            #     print 'grad mean ', np.mean(var_grad_val) 
-	            #     #print 'shape ',data_var.shape 
-	            #     print 'filter min ', np.min(data_var) 
-	            #     print 'filter max ', np.max(data_var) 
-	            #     print 'filter mean ', np.mean(data_var)    
-	                #self.writer.add_summary(summary, it)
-                            # print 'trainable vars ' 
+
 
             
             if it%config.test_every==0 and it!=0:#==0:#test one subject                
@@ -283,3 +283,29 @@ class MR2CT(object):
         else:
             return False
 
+
+ def combined_loss_G(self,batch_size_tf):
+        """
+        Calculates the sum of the combined adversarial, lp and GDL losses in the given proportion. Used
+        for training the generative model.
+        @param gen_frames: A list of tensors of the generated frames at each scale.
+        @param gt_frames: A list of tensors of the ground truth frames at each scale.
+        @param d_preds: A list of tensors of the classifications made by the discriminator model at each
+                        scale.
+        @param lam_adv: The percentage of the adversarial loss to use in the combined loss.
+        @param lam_lp: The percentage of the lp loss to use in the combined loss.
+        @param lam_gdl: The percentage of the GDL loss to use in the combined loss.
+        @param l_num: 1 or 2 for l1 and l2 loss, respectively).
+        @param alpha: The power to which each gradient term is raised in GDL loss.
+        @return: The combined adversarial, lp and GDL losses.
+        """
+
+
+        lpterm = lp_loss(self.G, self.CT_GT, self.l_num, batch_size_tf)
+        gdlterm = gdl3d_loss(self.G, self.CT_GT, self.alpha,batch_size_tf)
+        bceterm = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits_,labels=tf.ones_like(self.D_)))
+        loss_ = self.lam_lp*lpterm + self.lam_gdl*gdlterm + self.lam_adv*bceterm
+        tf.add_to_collection('losses', loss_)
+        loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+
+        return loss, lpterm, gdlterm, bceterm
