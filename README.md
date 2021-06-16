@@ -39,6 +39,25 @@ BTW, you can download a real medical image synthesis dataset for reconstructing 
 Also, there are some MRI synthesis datasets available:
 http://brain-development.org/ixi-dataset/
 
+# Cite
+<pre>
+@inproceedings{nie2017medical,
+  title={Medical image synthesis with context-aware generative adversarial networks},
+  author={Nie, Dong and Trullo, Roger and Lian, Jun and Petitjean, Caroline and Ruan, Su and Wang, Qian and Shen, Dinggang},
+  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
+  pages={417--425},
+  year={2017},
+  organization={Springer}
+}
+@article{nie2018medical,
+  title={Medical Image Synthesis with Deep Convolutional Adversarial Networks},
+  author={Nie, Dong and Trullo, Roger and Lian, Jun and Wang, Li and Petitjean, Caroline and Ruan, Su and Wang, Qian and Shen, Dinggang},
+  journal={IEEE Transactions on Biomedical Engineering},
+  year={2018},
+  publisher={IEEE}
+}
+</pre>
+
 # License
 medSynthesis is released under the MIT License (refer to the LICENSE file for details).
 
